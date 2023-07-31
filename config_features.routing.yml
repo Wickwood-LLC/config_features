@@ -1,0 +1,83 @@
+config_features.settings:
+  path: '/admin/config/development/configuration/feature'
+  defaults:
+    _form: '\Drupal\config_features\Form\Settings'
+    _title: 'Config Share Settigs'
+  requirements:
+    _permission: 'import configuration'
+
+# Enable and disable just switch the status, but do not change other config
+entity.config_feature.enable:
+  path: '/admin/config/development/configuration/config-feature/{config_feature}/enable'
+  defaults:
+    _controller: '\Drupal\config_features\Controller\ConfigFeatureController::enableEntity'
+  requirements:
+    _permission: 'administer configuration features'
+
+entity.config_feature.disable:
+  path: '/admin/config/development/configuration/config-feature/{config_feature}/disable'
+  defaults:
+    _controller: '\Drupal\config_features\Controller\ConfigFeatureController::disableEntity'
+  requirements:
+    _permission: 'administer configuration features'
+
+# Importing or activating the feature writes the feature config to the active one.
+entity.config_feature.activate:
+  path: '/admin/config/development/configuration/config-feature/{config_feature}/activate'
+  defaults:
+    _form: '\Drupal\config_features\Form\ConfigFeatureActivateForm'
+    _title: 'Activate'
+  requirements:
+    _custom_access: '\Drupal\config_features\Form\ConfigFeatureActivateForm::access'
+
+# Deactivating the feature will remove the features config from the active storage.
+entity.config_feature.deactivate:
+  path: '/admin/config/development/configuration/config-feature/{config_feature}/deactivate'
+  defaults:
+    _form: '\Drupal\config_features\Form\ConfigFeatureDeactivateForm'
+    _title: 'Deactivate'
+  requirements:
+    _custom_access: '\Drupal\config_features\Form\ConfigFeatureDeactivateForm::access'
+
+# Importing or activating the feature writes the feature config to the active one.
+entity.config_feature.import:
+  path: '/admin/config/development/configuration/config-feature/{config_feature}/import'
+  defaults:
+    _form: '\Drupal\config_features\Form\ConfigFeatureImportForm'
+    _title: 'Import'
+  requirements:
+    _custom_access: '\Drupal\config_features\Form\ConfigFeatureImportForm::access'
+
+# Exporting the feature writes the feature config to the feature storage.
+entity.config_feature.export:
+  path: '/admin/config/development/configuration/config-feature/{config_feature}/export'
+  defaults:
+    _form: '\Drupal\config_features\Form\ConfigFeatureExportForm'
+    _title: 'Export'
+  requirements:
+    _custom_access: '\Drupal\config_features\Form\ConfigFeatureExportForm::access'
+
+# Diff path to see what is importing.
+config_features.diff:
+  path: '/admin/config/development/configuration/config-feature/{config_feature}/{operation}/diff/{source_name}/{target_name}'
+  defaults:
+    _controller: '\Drupal\config_features\Controller\ConfigFeatureDiffController::diff'
+    target_name: NULL
+  requirements:
+    _permission: 'administer configuration features'
+
+config_features.diff_collection:
+  path: '/admin/config/development/configuration/config-feature/{config_feature}/{operation}/diff_collection/{collection}/{source_name}/{target_name}'
+  defaults:
+    _controller: '\Drupal\config_features\Controller\ConfigFeatureDiffController::diff'
+    target_name: NULL
+  requirements:
+    _permission: 'administer configuration features'
+
+config_features.entity_export_download:
+  path: '/admin/config/development/configuration/config-feature/{config_feature}/download'
+  defaults:
+    _controller: '\Drupal\config_features\Controller\ConfigDownloadController::download'
+    _title: 'Download'
+  requirements:
+    _permission: 'administer configuration features'

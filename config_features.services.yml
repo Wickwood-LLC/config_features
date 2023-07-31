@@ -1,0 +1,17 @@
+services:
+  config_features.config_event_subscriber:
+    class: Drupal\config_features\EventSubscriber\ConfigSubscriber
+    arguments: ['@config.storage.active', '@config.storage.sync', '@config.factory']
+    tags:
+      - { name: event_subscriber }
+
+  config_features.manager:
+    class: Drupal\config_features\ConfigFeaturesManager
+    arguments:
+      - "@config.factory"
+      - "@config.manager"
+      - "@config.storage"
+      - "@config.storage.sync"
+      - "@config.storage.export"
+      - "@database"
+

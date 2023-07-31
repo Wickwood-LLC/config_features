@@ -1,0 +1,6 @@
+name: 'Config Features'
+type: module
+description: 'Allow to share configurations from one site to another.'
+core_version_requirement: ^9.4
+package: Config
+configure: config_features.settings

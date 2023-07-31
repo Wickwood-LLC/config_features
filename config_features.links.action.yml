@@ -1,0 +1,5 @@
+entity.config_feature.add_form:
+  route_name: 'entity.config_feature.add_form'
+  title: 'Add Configuration Feature setting'
+  appears_on:
+    - entity.config_feature.collection

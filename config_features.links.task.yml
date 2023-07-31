@@ -1,0 +1,40 @@
+entity.config_feature.canonical:
+  route_name: entity.config_feature.canonical
+  base_route: entity.config_feature.canonical
+  title: 'View'
+entity.config_feature.edit_form:
+  route_name: entity.config_feature.edit_form
+  base_route: entity.config_feature.canonical
+  title: Edit
+entity.config_feature.delete_form:
+  route_name: entity.config_feature.delete_form
+  base_route: entity.config_feature.canonical
+  title: Delete
+  weight: 10
+entity.config_feature.activate:
+  route_name: entity.config_feature.activate
+  base_route: entity.config_feature.canonical
+  title: Activate
+  weight: 20
+entity.config_feature.deactivate:
+  route_name: entity.config_feature.deactivate
+  base_route: entity.config_feature.canonical
+  title: Deactivate
+  weight: 20
+
+entity.config_feature.import:
+  route_name: entity.config_feature.import
+  base_route: entity.config_feature.canonical
+  title: Import
+  weight: 20
+
+entity.config_feature.export:
+  route_name: entity.config_feature.export
+  base_route: entity.config_feature.canonical
+  title: Export
+  weight: 20
+
+entity.config_feature.collection:
+  title: List
+  route_name: entity.config_feature.collection
+  base_route: entity.config_feature.collection

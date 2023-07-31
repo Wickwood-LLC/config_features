@@ -1,0 +1,27 @@
+config_features.config_feature.*:
+  type: config_entity
+  label: 'Configuration Feature setting'
+  mapping:
+    id:
+      type: string
+      label: 'ID'
+    label:
+      type: label
+      label: 'Label'
+    description:
+      type: label
+      label: 'Description'
+    weight:
+      type: integer
+      label: 'Weight'
+    status:
+      type: boolean
+      label: 'Active'
+    folder:
+      type: string
+      label: 'Folder'
+    configs_shared:
+      type: sequence
+      label: 'Configurations to Share'
+      sequence:
+        type: string
