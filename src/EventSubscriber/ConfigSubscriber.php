@@ -44,6 +44,7 @@ class ConfigSubscriber implements EventSubscriberInterface {
    */
   public static function getSubscribedEvents() {
     $events[ConfigEvents::STORAGE_TRANSFORM_IMPORT][] = ['importDefaultPriority'];
+    $events[ConfigEvents::STORAGE_TRANSFORM_EXPORT][] = ['exportDefaultPriority'];
     return $events;
   }
 
@@ -57,6 +58,18 @@ class ConfigSubscriber implements EventSubscriberInterface {
     $splits = array_reverse($this->getDefaultPrioritySplitConfigs($event->getStorage()));
     foreach ($splits as $split) {
       $this->manager->importTransform($split->get('id'), $event);
+    }
+  }
+
+  /**
+   * React to the export transformation.
+   *
+   * @param \Drupal\Core\Config\StorageTransformEvent $event
+   *   The transformation event.
+   */
+  public function exportDefaultPriority(StorageTransformEvent $event) {
+    foreach ($this->getDefaultPrioritySplitConfigs() as $split) {
+      $this->manager->exportTransform($split->get('id'), $event);
     }
   }
 
