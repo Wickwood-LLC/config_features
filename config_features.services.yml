@@ -1,7 +1,9 @@
 services:
   config_features.config_event_subscriber:
     class: Drupal\config_features\EventSubscriber\ConfigSubscriber
-    arguments: ['@config.storage.active', '@config.storage.sync', '@config.factory']
+    arguments:
+      - "@config_features.manager"
+      - "@config.factory"
     tags:
       - { name: event_subscriber }
 
