@@ -7,93 +7,74 @@ use Drupal\Core\Config\StorageTransformEvent;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Drupal\Core\Config\StorageInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\config_features\ConfigFeaturesManager;
+use Drupal\Core\Config\ImmutableConfig;
 
 class ConfigSubscriber implements EventSubscriberInterface {
 
-  /**                                         
-   * The active config storage.                 
-   *                                                                                                      
-   * @var \Drupal\Core\Config\StorageInterface                                                            
-   */              
-  protected $activeStorage;                                                                               
-                                                                                                          
-  /**                                            
-   * The sync config storage.                                                                             
+  /**
+   * The manager class which does the heavy lifting.
    *
-   * @var \Drupal\Core\Config\StorageInterface
+   * @var \Drupal\config_features\ConfigFeaturesManager
    */
-  protected $syncStorage;
+  protected $manager;
 
   /**
-   * The config_ignore_uuid.settings config object.
+   * The config factory to load config from.
    *
-   * @var \Drupal\Core\Config\Config
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
    */
-  protected $config;
+  protected $configFactory;
 
   /**
-   * DirectoriesConfigSubscriber constructor.
+   * SplitImportExportSubscriber constructor.
    *
-   * @param \Drupal\Core\Config\StorageInterface $config_storage
-   *   The config active storage.
-   * @param \Drupal\Core\Config\StorageInterface $sync_storage
-   *   The sync config storage.
+   * @param \Drupal\config_split\ConfigSplitManager $manager
+   *   The manager class which does the heavy lifting.
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $configFactory
+   *   The config factory to load config from.
    */
-  public function __construct(StorageInterface $config_storage, StorageInterface $sync_storage, ConfigFactoryInterface $config_factory) {
-    $this->activeStorage = $config_storage;
-    $this->syncStorage = $sync_storage;
-    $this->config = $config_factory->get('config_ignore_uuid.settings');
+  public function __construct(ConfigFeaturesManager $manager, ConfigFactoryInterface $configFactory) {
+    $this->manager = $manager;
+    $this->configFactory = $configFactory;
   }
 
   /**
    * {@inheritdoc}
    */
   public static function getSubscribedEvents() {
-    $events[ConfigEvents::STORAGE_TRANSFORM_IMPORT][] = ['onImportTransform', -100];
-    $events[ConfigEvents::STORAGE_TRANSFORM_EXPORT][] = ['onExportTransform', -100];
+    $events[ConfigEvents::STORAGE_TRANSFORM_IMPORT][] = ['importDefaultPriority'];
     return $events;
   }
-  
+
   /**
-   * The storage is transformed for importing.
+   * React to the import transformation.
    *
    * @param \Drupal\Core\Config\StorageTransformEvent $event
-   *   The config storage transform event.
+   *   The transformation event.
    */
-  public function onImportTransform(StorageTransformEvent $event) {
-    $uuids_to_replace = [];
-    $transformation_storage = $event->getStorage();
-    $config_names = $transformation_storage->listAll();
-    foreach ($config_names as $config_name) {
-      if (self::matchConfigName($config_name)) {
-        $data = $transformation_storage->read($config_name);
-        $active_data = $this->activeStorage->read($config_name);
-        if ($data && $active_data && !empty($data['uuid']) && !empty($active_data['uuid']) && $data['uuid'] != $active_data['uuid']) {
-          $uuids_to_replace[$data['uuid']] = $active_data['uuid'];
-          $data['uuid'] = $active_data['uuid'];
-          $transformation_storage->write($config_name, $data);
-        }
-      }
+  public function importDefaultPriority(StorageTransformEvent $event) {
+    $splits = array_reverse($this->getDefaultPrioritySplitConfigs($event->getStorage()));
+    foreach ($splits as $split) {
+      $this->manager->importTransform($split->get('id'), $event);
     }
-    
+  }
 
-    if (!empty($uuids_to_replace)) {
-      foreach ($config_names as $config_name) {
-        $data = $transformation_storage->read($config_name);
-        $raw_data = $transformation_storage->encode($data);
-        $sum_count = 0;
-        foreach ($uuids_to_replace as $new => $original) {
-          $count = 0;
-          $raw_data = str_replace($new, $original, $raw_data, $count);
-          $sum_count += $count;
-        }
-        if ($sum_count) {
-          // Only care to write back if any replacement happened.
-          $data = $transformation_storage->decode($raw_data);
-          $transformation_storage->write($config_name, $data);
-        }
-      }
-    }
+  /**
+   * Get the split config that was not explicitly set with a priority.
+   *
+   * @return \Drupal\Core\Config\ImmutableConfig[]
+   *   The default priority configs.
+   */
+  protected function getDefaultPrioritySplitConfigs(StorageInterface $storage = NULL): array {
+    $names = $this->manager->listAll($storage);
+
+    $splits = $this->manager->loadMultiple($names, $storage);
+    uasort($splits, function (ImmutableConfig $a, ImmutableConfig $b) {
+      return $a->get('weight') <=> $b->get('weight');
+    });
+
+    return $splits;
   }
 
   /**
