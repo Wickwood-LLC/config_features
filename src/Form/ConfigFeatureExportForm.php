@@ -32,7 +32,7 @@ class ConfigFeatureExportForm extends FormBase {
     $comparer = new StorageComparer($this->manager->singleExportPreview($feature), $this->manager->singleExportTarget($feature));
     $options = [
       'route' => [
-        'config_feature' => $feature->getName(),
+        'config_feature' => $feature->get('id'),
         'operation' => 'export',
       ],
       'operation label' => $this->t('Export to feature storage'),
