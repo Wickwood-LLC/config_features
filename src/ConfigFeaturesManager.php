@@ -3,7 +3,6 @@
 namespace Drupal\config_features;
 
 use Drupal\Component\FileSecurity\FileSecurity;
-use Drupal\config_features\Config\FeatureCollectionStorage;
 use Drupal\config_features\Entity\ConfigFeatureEntity;
 use Drupal\Core\Config\ConfigFactory;
 use Drupal\Core\Config\ConfigFactoryInterface;
@@ -17,7 +16,6 @@ use Drupal\Core\Config\StorageCopyTrait;
 use Drupal\Core\Config\StorageInterface;
 use Drupal\Core\Config\StorageTransformEvent;
 use Drupal\Core\Database\Connection;
-use Drupal\config_ignore_uuid\EventSubscriber\ConfigSubscriber as UUIDChangeConfigSubscriber;
 
 /**
  * The manager to feature and merge.
@@ -237,7 +235,7 @@ final class ConfigFeaturesManager {
     $storage = $event->getStorage();
     $secondary = $this->getSplitStorage($feature, $storage);
     if ($secondary !== NULL) {
-      $this->mergeSplit($feature, $storage, $secondary);
+      $this->mergeFeature($feature, $storage, $secondary);
     }
   }
 
@@ -279,12 +277,6 @@ final class ConfigFeaturesManager {
     $transforming = $transforming->createCollection(StorageInterface::DEFAULT_COLLECTION);
     $featureStorage = $featureStorage->createCollection(StorageInterface::DEFAULT_COLLECTION);
     $source = $this->active->createCollection(StorageInterface::DEFAULT_COLLECTION);
-    // if ($config->get('stackable')) {
-    //   // We need to copy the transforming storage so that we don't change what
-    //   // we later compare with.
-    //   $source = new MemoryStorage();
-    //   self::replaceStorageContents($transforming, $source);
-    // }
 
     // $modules = array_keys($config->get('module'));
     // $changes = $this->manager->getConfigEntitiesToChangeOnDependencyRemoval('module', $modules, FALSE);
@@ -296,18 +288,9 @@ final class ConfigFeaturesManager {
       return $entity->getConfigDependencyName();
     }, $changes['delete']);
 
-    // Process all simple config objects which implicitly depend on modules.
-    // foreach ($modules as $module) {
-    //   $keys = $source->listAll($module . '.');
-    //   $keys = array_diff($keys, $completelySplit);
-    //   foreach ($keys as $name) {
-    //     self::moveConfigToSplit($name, $source, $featureStorage, $transforming);
-    //     $completelySplit[] = $name;
-    //   }
-    // }
 
     // Get explicitly feature config.
-    $completeSplitList = $config->get('complete_list');
+    $completeSplitList = $config->get('configs_shared');
     if (!empty($completeSplitList)) {
       // For the complete feature we use the active storage config. This way two
       // features can feature the same config and both will have them. But also
@@ -354,50 +337,6 @@ final class ConfigFeaturesManager {
       }
     }
 
-    // Process partial config.
-    $partialSplitList = $config->get('partial_list');
-    if (!empty($partialSplitList)) {
-      $preparedSync = $this->prepareSyncForPartialComparison($config);
-      foreach (array_merge([StorageInterface::DEFAULT_COLLECTION], $source->getAllCollectionNames()) as $collection) {
-        $syncCollection = $preparedSync->createCollection($collection);
-        $sourceCollection = $source->createCollection($collection);
-        $storageCollection = $transforming->createCollection($collection);
-        $featureCollection = $featureStorage->createCollection($collection);
-
-        $partialList = array_filter($sourceCollection->listAll(), function ($name) use ($partialSplitList, $completelySplit) {
-          // Check for wildcards. But skip config which is already feature.
-          return !in_array($name, $completelySplit) && self::inFilterList($name, $partialSplitList);
-        });
-
-        foreach ($partialList as $name) {
-          if ($syncCollection->exists($name)) {
-            $sync = $syncCollection->read($name);
-            $active = $sourceCollection->read($name);
-
-            // $patch = $this->createPatch($name, $active, $sync, $featureCollection);
-            // if (!$patch->isEmpty()) {
-            //   // If the diff is empty then sync already contains the data.
-            //   $storageCollection->write($name, $sync);
-            // }
-          }
-          else {
-            // Split the config completely if it was not in the sync storage.
-            self::moveConfigToSplit($name, $sourceCollection, $featureCollection, $storageCollection);
-          }
-        }
-      }
-    }
-
-    // Now special case the extensions.
-    $extensions = $transforming->read('core.extension');
-    if ($extensions === FALSE) {
-      return;
-    }
-    // Split off the extensions.
-    $extensions['module'] = array_diff_key($extensions['module'], $config->get('module') ?? []);
-    $extensions['theme'] = array_diff_key($extensions['theme'], $config->get('theme') ?? []);
-
-    $transforming->write('core.extension', $extensions);
   }
 
   /**
@@ -410,7 +349,7 @@ final class ConfigFeaturesManager {
    * @param \Drupal\Core\Config\StorageInterface $featureStorage
    *   The feature storage.
    */
-  public function mergeSplit(ImmutableConfig $config, StorageInterface $transforming, StorageInterface $featureStorage): void {
+  public function mergeFeature(ImmutableConfig $config, StorageInterface $transforming, StorageInterface $featureStorage): void {
     $transforming = $transforming->createCollection(StorageInterface::DEFAULT_COLLECTION);
     $featureStorage = $featureStorage->createCollection(StorageInterface::DEFAULT_COLLECTION);
 
@@ -421,51 +360,17 @@ final class ConfigFeaturesManager {
       foreach ($feature->listAll() as $name) {
         $data = $feature->read($name);
         if ($data !== FALSE) {
-          $active_data = $storage->read($name);
-          if (UUIDChangeConfigSubscriber::matchConfigName($name) && $data && $active_data && !empty($data['uuid']) && !empty($active_data['uuid']) && $data['uuid'] != $active_data['uuid']) {
-            // $uuids_to_replace[$data['uuid']] = $active_data['uuid'];
-            $data['uuid'] = $active_data['uuid'];
-          }
           $storage->write($name, $data);
         }
       }
     }
 
-    // When merging a feature with the collection storage we delete all in it.
-    if ($config->get('storage') === 'collection') {
-      // We can not assume $featureStorage is grafted onto $transforming.
-      $collectionStorage = new FeatureCollectionStorage($transforming, $config->get('id'));
-      foreach (array_merge([StorageInterface::DEFAULT_COLLECTION], $collectionStorage->getAllCollectionNames()) as $collection) {
-        $collectionStorage->createCollection($collection)->deleteAll();
-      }
-    }
-
-    // Now special case the extensions.
-    $extensions = $transforming->read('core.extension');
-    if ($extensions === FALSE) {
-      return;
-    }
 
     $updated = $transforming->read($config->getName());
     if ($updated === FALSE) {
       return;
     }
 
-    $extensions['theme'] = array_merge($extensions['theme'] ?? [], $updated['theme'] ?? []);
-    $sorted = array_merge($extensions['module'] ?? [], $updated['module'] ?? []);
-    // Sort the modules.
-    uksort($sorted, function ($a, $b) use ($sorted) {
-      // Sort by module weight, this assumes the schema of core.extensions.
-      if ($sorted[$a] != $sorted[$b]) {
-        return $sorted[$a] > $sorted[$b] ? 1 : -1;
-      }
-      // Or sort by module name.
-      return $a > $b ? 1 : -1;
-    });
-
-    $extensions['module'] = $sorted;
-
-    $transforming->write('core.extension', $extensions);
   }
 
   /**
@@ -480,46 +385,33 @@ final class ConfigFeaturesManager {
    *   The feature storage.
    */
   protected function getSplitStorage(ImmutableConfig $config, StorageInterface $transforming = NULL): ?StorageInterface {
-    $storage = $config->get('storage');
-    if ('collection' === $storage) {
-      if ($transforming instanceof StorageInterface) {
-        return new FeatureCollectionStorage($transforming, $config->get('id'));
-      }
-
-      return NULL;
+    // Here we could determine to use relative paths etc.
+    $directory = \Drupal::getContainer()->getParameter('site.path') . '/' . $config->get('folder');
+    if (!is_dir($directory)) {
+      // If the directory doesn't exist, attempt to create it.
+      // This might have some negative consequences, but we trust the user to
+      // have properly configured their site.
+      /* @noinspection MkdirRaceConditionInspection */
+      @mkdir($directory, 0777, TRUE);
     }
-    if ('folder' === $storage) {
-      // Here we could determine to use relative paths etc.
-      $directory = \Drupal::getContainer()->getParameter('site.path') . '/' . $config->get('folder');
-      if (!is_dir($directory)) {
-        // If the directory doesn't exist, attempt to create it.
-        // This might have some negative consequences, but we trust the user to
-        // have properly configured their site.
-        /* @noinspection MkdirRaceConditionInspection */
-        @mkdir($directory, 0777, TRUE);
+    // The following is roughly: file_save_htaccess($directory, TRUE, TRUE);
+    // But we can't use global drupal functions, and we want to write the
+    // .htaccess file to ensure the configuration is protected and the
+    // directory not empty.
+    if (file_exists($directory) && is_writable($directory)) {
+      $htaccess_path = rtrim($directory, '/\\') . '/.htaccess';
+      if (!file_exists($htaccess_path)) {
+        file_put_contents($htaccess_path, FileSecurity::htaccessLines(TRUE));
+        @chmod($htaccess_path, 0444);
       }
-      // The following is roughly: file_save_htaccess($directory, TRUE, TRUE);
-      // But we can't use global drupal functions, and we want to write the
-      // .htaccess file to ensure the configuration is protected and the
-      // directory not empty.
-      if (file_exists($directory) && is_writable($directory)) {
-        $htaccess_path = rtrim($directory, '/\\') . '/.htaccess';
-        if (!file_exists($htaccess_path)) {
-          file_put_contents($htaccess_path, FileSecurity::htaccessLines(TRUE));
-          @chmod($htaccess_path, 0444);
-        }
-      }
-
-      if (file_exists($directory) || strpos($directory, 'vfs://') === 0) {
-        // Allow virtual file systems even if file_exists is false.
-        return new FileStorage($directory);
-      }
-
-      return NULL;
     }
 
-    // When the folder is not set use a database.
-    return new DatabaseStorage($this->connection, $this->connection->escapeTable(strtr($config->getName(), ['.' => '_'])));
+    if (file_exists($directory) || strpos($directory, 'vfs://') === 0) {
+      // Allow virtual file systems even if file_exists is false.
+      return new FileStorage($directory);
+    }
+
+    return NULL;
   }
 
   /**
@@ -534,14 +426,6 @@ final class ConfigFeaturesManager {
    *   The preview storage.
    */
   public function getPreviewStorage(ImmutableConfig $config, StorageInterface $transforming = NULL): ?StorageInterface {
-    if ('collection' === $config->get('storage')) {
-      if ($transforming instanceof StorageInterface) {
-        return new FeatureCollectionStorage($transforming, $config->get('id'));
-      }
-
-      return NULL;
-    }
-
     $name = substr($config->getName(), strlen('config_features.config_feature.'));
     $name = 'config_feature_preview_' . strtr($name, ['.' => '_']);
     // Use the database for everything.
@@ -562,7 +446,6 @@ final class ConfigFeaturesManager {
     // Force the transformation.
     $this->export->listAll();
     $preview = $this->getPreviewStorage($feature, $this->export);
-
     if (!$feature->get('status') && $preview !== NULL) {
       // @todo decide if featureting an inactive feature is wise.
       $transforming = new MemoryStorage();
@@ -687,7 +570,7 @@ final class ConfigFeaturesManager {
     $transformation = new MemoryStorage();
     static::replaceStorageContents($this->active, $transformation);
 
-    $this->mergeSplit($feature, $transformation, $storage);
+    $this->mergeFeature($feature, $transformation, $storage);
 
     // Activate the feature in the transformation so that the importer does it.
     $config = $transformation->read($feature->getName());
@@ -793,7 +676,7 @@ final class ConfigFeaturesManager {
         // Exclude inactive features and features that come before on export.
         continue;
       }
-      $this->mergeSplit($feature, $composed, $this->singleExportTarget($feature));
+      $this->mergeFeature($feature, $composed, $this->singleExportTarget($feature));
     }
 
     return $composed;
