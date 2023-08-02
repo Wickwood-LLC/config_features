@@ -278,19 +278,22 @@ final class ConfigFeaturesManager {
     $featureStorage = $featureStorage->createCollection(StorageInterface::DEFAULT_COLLECTION);
     $source = $this->active->createCollection(StorageInterface::DEFAULT_COLLECTION);
 
+    $configsExcluded = $config->get('configs_excluded');
+
     // $modules = array_keys($config->get('module'));
     // $changes = $this->manager->getConfigEntitiesToChangeOnDependencyRemoval('module', $modules, FALSE);
     $changes = ['update' => [], 'delete' => [], 'unchanged' => []];
 
-    $this->processEntitiesToChangeOnDependencyRemoval($changes, $source, $transforming, $featureStorage);
+    $this->processEntitiesToChangeOnDependencyRemoval($changes, $source, $transforming, $featureStorage, $configsExcluded);
 
     $completelySplit = array_map(function (ConfigEntityInterface $entity) {
       return $entity->getConfigDependencyName();
     }, $changes['delete']);
 
 
-    // Get explicitly feature config.
+    // Get explicitly featured config.
     $completeSplitList = $config->get('configs_shared');
+
     if (!empty($completeSplitList)) {
       // For the complete feature we use the active storage config. This way two
       // features can feature the same config and both will have them. But also
@@ -305,7 +308,7 @@ final class ConfigFeaturesManager {
 
       // Process also the config being removed.
       $changes = $this->manager->getConfigEntitiesToChangeOnDependencyRemoval('config', $completeList, FALSE);
-      $this->processEntitiesToChangeOnDependencyRemoval($changes, $source, $transforming, $featureStorage);
+      $this->processEntitiesToChangeOnDependencyRemoval($changes, $source, $transforming, $featureStorage, $configsExcluded);
 
       // Split all the config which was specified but not processed yet.
       $processed = array_map(function (ConfigEntityInterface $entity) {
@@ -313,6 +316,9 @@ final class ConfigFeaturesManager {
       }, $changes['delete']);
       $unprocessed = array_diff($completeList, $processed);
       foreach ($unprocessed as $name) {
+        if (in_array($name, $configsExcluded)) {
+          continue;
+        }
         self::moveConfigToSplit($name, $source, $featureStorage, $transforming);
         $completelySplit[] = $name;
       }
@@ -330,6 +336,9 @@ final class ConfigFeaturesManager {
           return in_array($name, $completelySplit) || self::inFilterList($name, $completeSplitList);
         });
         foreach ($removeList as $name) {
+          if (in_array($name, $configsExcluded)) {
+          continue;
+        }
           // Split collections.
           self::moveConfigToSplit($name, $sourceCollection, $featureCollection, $storageCollection);
         }
@@ -593,7 +602,7 @@ final class ConfigFeaturesManager {
    * @param \Drupal\Core\Config\StorageInterface $feature
    *   The feature storage.
    */
-  protected function processEntitiesToChangeOnDependencyRemoval(array $changes, StorageInterface $source, StorageInterface $storage, StorageInterface $feature) {
+  protected function processEntitiesToChangeOnDependencyRemoval(array $changes, StorageInterface $source, StorageInterface $storage, StorageInterface $feature, $configsExcluded = []) {
     // Process entities that need to be updated.
     /** @var \Drupal\Core\Config\Entity\ConfigEntityInterface $entity */
     foreach ($changes['update'] as $entity) {
@@ -620,6 +629,9 @@ final class ConfigFeaturesManager {
     /** @var \Drupal\Core\Config\Entity\ConfigEntityInterface $entity */
     foreach ($changes['delete'] as $entity) {
       $name = $entity->getConfigDependencyName();
+      if (in_array($name, $configsExcluded)) {
+        continue;
+      }
       self::moveConfigToSplit($name, $source, $feature, $storage);
     }
   }
