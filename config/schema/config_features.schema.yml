@@ -25,3 +25,8 @@ config_features.config_feature.*:
       label: 'Configurations to Share'
       sequence:
         type: string
+    configs_excluded:
+      type: sequence
+      label: 'Configurations to Exclude'
+      sequence:
+        type: string
