@@ -304,8 +304,7 @@ final class ConfigFeaturesManager {
       $completeList = array_diff($completeList, $completelySplit);
 
       // Process also the config being removed.
-      // $changes = $this->manager->getConfigEntitiesToChangeOnDependencyRemoval('config', $completeList, FALSE);
-      $changes = ['update' => [], 'delete' => [], 'unchanged' => []];
+      $changes = $this->manager->getConfigEntitiesToChangeOnDependencyRemoval('config', $completeList, FALSE);
       $this->processEntitiesToChangeOnDependencyRemoval($changes, $source, $transforming, $featureStorage);
 
       // Split all the config which was specified but not processed yet.
