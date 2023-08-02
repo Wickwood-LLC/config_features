@@ -201,6 +201,32 @@ class ConfigFeatureEntityForm extends EntityForm {
       '#default_value' => implode("\n", array_diff($config->get('configs_shared'), array_keys($options))),
     ];
 
+    $form['exclude_fieldset'] = [
+      '#type' => 'fieldset',
+      '#title' => $this->t('Exclude Feature'),
+      '#description' => $this->t("<em>Exclude Feature:</em>
+       Configuration listed here will be excluded from being part of this feature.
+       It would be useful in case you want to specifically remove some configurations that are automatically become part as a dependency."),
+    ];
+
+    $form['exclude_fieldset']['exclude_picker'] = [
+      '#type' => $multiselect_type,
+      '#title' => $this->t('Configuration items to exclude'),
+      '#description' => $this->t('Select configurations to exclude. Configuration depending on features will be automatically inlcuded. In case you want to remove any of them.'),
+      '#options' => $options,
+      '#size' => 20,
+      '#multiple' => TRUE,
+      '#default_value' => array_intersect($config->get('configs_excluded') ?? [], array_keys($options)),
+    ];
+
+    $form['exclude_fieldset']['exclude_text'] = [
+      '#type' => 'textarea',
+      '#title' => $this->t('Additional configuration'),
+      '#description' => $this->t('Select additional configuration to exclude. One configuration key per line. You can use wildcards.'),
+      '#size' => 5,
+      '#default_value' => implode("\n", array_diff($config->get('configs_excluded') ?? [], array_keys($options))),
+    ];
+
     return $form;
   }
 
@@ -224,6 +250,12 @@ class ConfigFeatureEntityForm extends EntityForm {
     $form_state->setValue('configs_shared', array_merge(
       array_keys($selection),
       $this->filterConfigNames($form_state->getValue('complete_text'))
+    ));
+
+    $selection = $this->readValuesFromPicker($form_state->getValue('exclude_picker'));
+    $form_state->setValue('configs_excluded', array_merge(
+      array_keys($selection),
+      $this->filterConfigNames($form_state->getValue('exclude_text'))
     ));
 
     parent::submitForm($form, $form_state);

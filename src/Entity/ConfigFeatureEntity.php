@@ -50,6 +50,7 @@ use Drupal\Core\Config\Entity\ConfigEntityBase;
  *     "status",
  *     "folder",
  *     "configs_shared",
+ *     "configs_excluded",
  *   }
  * )
  */
@@ -103,5 +104,12 @@ class ConfigFeatureEntity extends ConfigEntityBase implements ConfigFeatureEntit
    * @var string[]
    */
   protected $configs_shared = [];
+
+  /**
+   * List of configurations to exclude.
+   *
+   * @var string[]
+   */
+  protected $configs_excluded = [];
 
 }
