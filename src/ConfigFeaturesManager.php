@@ -372,6 +372,10 @@ final class ConfigFeaturesManager {
       foreach ($feature->listAll() as $name) {
         $data = $feature->read($name);
         if ($data !== FALSE) {
+          $dataExisting = $storage->read($name);
+          if ($dataExisting && isset($data['uuid']) && isset($dataExisting['uuid']) && $data['uuid'] != $dataExisting['uuid']) {
+            $data['uuid'] = $dataExisting['uuid'];
+          }
           $storage->write($name, $data);
         }
       }
