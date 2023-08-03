@@ -16,6 +16,7 @@ use Drupal\Core\Config\StorageCopyTrait;
 use Drupal\Core\Config\StorageInterface;
 use Drupal\Core\Config\StorageTransformEvent;
 use Drupal\Core\Database\Connection;
+use Drupal\config_features\Config\EphemeralConfigFactory;
 
 /**
  * The manager to feature and merge.
@@ -119,8 +120,9 @@ final class ConfigFeaturesManager {
     }
     // Get the feature from the storage passed as an argument.
     if ($storage instanceof StorageInterface && $this->factory instanceof ConfigFactory) {
-      if (in_array($name, $this->factory->listAll('config_features.config_feature.'), TRUE)) {
-        return $this->factory->get($name);
+      $factory = EphemeralConfigFactory::fromService($this->factory, $storage);
+      if (in_array($name, $factory->listAll('config_features.config_feature.'), TRUE)) {
+        return $factory->get($name);
       }
     }
     // Use the config factory service as a fallback.
@@ -166,7 +168,8 @@ final class ConfigFeaturesManager {
   public function listAll(StorageInterface $storage = NULL): array {
     $names = [];
     if ($storage instanceof StorageInterface && $this->factory instanceof ConfigFactory) {
-      $names = $this->factory->listAll('config_features.config_feature.');
+      $factory = EphemeralConfigFactory::fromService($this->factory, $storage);
+      $names = $factory->listAll('config_features.config_feature.');
     }
 
     return array_unique(array_merge($names, $this->factory->listAll('config_features.config_feature.')));
@@ -186,7 +189,8 @@ final class ConfigFeaturesManager {
   public function loadMultiple(array $names, StorageInterface $storage = NULL): array {
     $configs = [];
     if ($storage instanceof StorageInterface && $this->factory instanceof ConfigFactory) {
-      $configs = $this->factory->loadMultiple($names);
+      $factory = EphemeralConfigFactory::fromService($this->factory, $storage);
+      $configs = $factory->loadMultiple($names);
     }
 
     return $configs + $this->factory->loadMultiple($names);
