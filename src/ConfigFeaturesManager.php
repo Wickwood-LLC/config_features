@@ -472,6 +472,20 @@ final class ConfigFeaturesManager {
     if ($preview === NULL) {
       throw new \RuntimeException();
     }
+
+    // Change conflicting UUIDs on preview storage to match with configs on feature directory.
+    // So, it won't show UUID differences.
+    $featureStorage = $this->getSplitStorage($feature, $this->sync);
+    foreach ($featureStorage->listAll() as $name) {
+      if ($preview->exists($name)) {
+        $featureData = $featureStorage->read($name);
+        $previewData = $preview->read($name);
+        if (isset($featureData['uuid']) && isset($previewData['uuid']) && $featureData['uuid'] != $previewData['uuid']) {
+          $previewData['uuid'] = $featureData['uuid'];
+          $preview->write($name, $previewData);
+        }
+      }
+    }
     return $preview;
   }
 
