@@ -1,0 +1,21 @@
+<?php
+
+use Drupal\Core\StreamWrapper\StreamWrapperManager;
+use Drupal\config_features\Controller\ConfigDownloadController;
+
+/**
+ * Implements hook_file_download().
+ */
+function  config_features_file_download($uri) {
+    $scheme = StreamWrapperManager::getScheme($uri);
+    $target = StreamWrapperManager::getTarget($uri);
+    if ($scheme == 'temporary' && str_starts_with($target, ConfigDownloadController::FILE_PREFIX)) {
+      if (\Drupal::currentUser()->hasPermission('administer configuration split')) {
+        $disposition = 'attachment; filename="' . $target . '"';
+        return [
+          'Content-disposition' => $disposition,
+        ];
+      }
+      return -1;
+    }
+  }
