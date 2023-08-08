@@ -23,7 +23,7 @@ use Drupal\Core\Config\Entity\ConfigEntityBase;
  *     },
  *   },
  *   config_prefix = "config_feature",
- *   admin_permission = "administer configuration feature",
+ *   admin_permission = "administer configuration features",
  *   entity_keys = {
  *     "id" = "id",
  *     "label" = "label",

@@ -70,7 +70,7 @@ class ConfigFeatureActivateForm extends FormBase {
    */
   public function access(AccountInterface $account) {
     $feature = $this->getFeature();
-    return AccessResult::allowedIfHasPermission($account, 'administer configuration feature')
+    return AccessResult::allowedIfHasPermission($account, 'administer configuration features')
       ->andIf(AccessResult::allowedIf(!$feature->get('status')))
       ->addCacheableDependency($feature);
   }
