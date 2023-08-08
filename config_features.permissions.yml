@@ -1,0 +1,3 @@
+administer configuration features:
+  title: 'administer configuration features'
+  restrict access: true
