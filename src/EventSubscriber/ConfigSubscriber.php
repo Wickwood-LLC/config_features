@@ -132,46 +132,4 @@ class ConfigSubscriber implements EventSubscriberInterface {
     $pattern = str_replace('\*', '.*', $pattern);
     return (bool) preg_match($pattern, $string);
   }
-
-  /**
-   * The storage is transformed for exporting.
-   *
-   * @param \Drupal\Core\Config\StorageTransformEvent $event
-   *   The config storage transform event.
-   */
-  public function onExportTransform(StorageTransformEvent $event) {
-    // $uuids_to_replace = [];
-    // $transformation_storage = $event->getStorage();
-    // $config_names = $transformation_storage->listAll();
-    // foreach ($config_names as $config_name) {
-    //   if ($this->matchConfigName($config_name)) {
-    //     $data = $transformation_storage->read($config_name);
-    //     $active_data = $this->activeStorage->read($config_name);
-    //     if ($data && $active_data && !empty($data['uuid']) && !empty($active_data['uuid']) && $data['uuid'] != $active_data['uuid']) {
-    //       $uuids_to_replace[$data['uuid']] = $active_data['uuid'];
-    //       $data['uuid'] = $active_data['uuid'];
-    //       $transformation_storage->write($config_name, $data);
-    //     }
-    //   }
-    // }
-    
-
-    // if (!empty($uuids_to_replace)) {
-    //   foreach ($config_names as $config_name) {
-    //     $data = $transformation_storage->read($config_name);
-    //     $raw_data = $transformation_storage->encode($data);
-    //     $sum_count = 0;
-    //     foreach ($uuids_to_replace as $new => $original) {
-    //       $count = 0;
-    //       $raw_data = str_replace($new, $original, $raw_data, $count);
-    //       $sum_count += $count;
-    //     }
-    //     if ($sum_count) {
-    //       // Only care to write back if any replacement happened.
-    //       $data = $transformation_storage->decode($raw_data);
-    //       $transformation_storage->write($config_name, $data);
-    //     }
-    //   }
-    // }
-  }
 }
