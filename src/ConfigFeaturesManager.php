@@ -376,6 +376,12 @@ final class ConfigFeaturesManager {
           if ($dataExisting && isset($data['uuid']) && isset($dataExisting['uuid']) && $data['uuid'] != $dataExisting['uuid']) {
             $data['uuid'] = $dataExisting['uuid'];
           }
+          else {
+            $activeData = $this->active->read($name);
+            if ($activeData && isset($data['uuid']) && isset($activeData['uuid']) && $data['uuid'] != $activeData['uuid']) {
+              $data['uuid'] = $activeData['uuid'];
+            }
+          }
           $storage->write($name, $data);
         }
       }
