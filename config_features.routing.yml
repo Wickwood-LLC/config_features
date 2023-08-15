@@ -1,11 +1,3 @@
-config_features.settings:
-  path: '/admin/config/development/configuration/feature'
-  defaults:
-    _form: '\Drupal\config_features\Form\Settings'
-    _title: 'Config Share Settigs'
-  requirements:
-    _permission: 'import configuration'
-
 # Enable and disable just switch the status, but do not change other config
 entity.config_feature.enable:
   path: '/admin/config/development/configuration/config-feature/{config_feature}/enable'
