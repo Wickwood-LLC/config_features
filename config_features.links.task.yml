@@ -1,3 +1,10 @@
+entity.config_feature.collection:
+  route_name: entity.config_feature.collection
+  title: 'Configuration Features'
+  base_route: config.sync
+  weight: 10
+
+# Configure Feature entity tabs
 entity.config_feature.canonical:
   route_name: entity.config_feature.canonical
   base_route: entity.config_feature.canonical
@@ -33,8 +40,3 @@ entity.config_feature.export:
   base_route: entity.config_feature.canonical
   title: Export
   weight: 20
-
-entity.config_feature.collection:
-  title: List
-  route_name: entity.config_feature.collection
-  base_route: entity.config_feature.collection
