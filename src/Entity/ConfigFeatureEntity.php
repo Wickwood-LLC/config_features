@@ -9,7 +9,7 @@ use Drupal\Core\Config\Entity\ConfigEntityBase;
  *
  * @ConfigEntityType(
  *   id = "config_feature",
- *   label = @Translation("Configuration Feature setting"),
+ *   label = @Translation("Configuration Feature"),
  *   handlers = {
  *     "view_builder" = "Drupal\config_features\ConfigFeatureEntityViewBuilder",
  *     "list_builder" = "Drupal\config_features\ConfigFeatureEntityListBuilder",
